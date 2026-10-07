@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' 'self' https://imgcache.qq.com; img-src data: blob: https://imgcache.qq.com; font-src 'none'; connect-src https://tcb-api.tencentcloudapi.com wss://tcb-api.tencentcloudapi.com wss://wsap.tcloudbase.com https://apis.map.qq.com; object-src 'none'; base-uri 'none'; form-action 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' 'self' https://imgcache.qq.com; img-src data: blob: https://imgcache.qq.com; font-src 'none'; connect-src https://tcb-api.tencentcloudapi.com wss://tcb-api.tencentcloudapi.com wss://wsap.tcloudbase.com https://*.tcb.qcloud.la https://*.cos.ap-shanghai.myqcloud.com https://*.tcloudbaseapp.com; object-src 'none'; base-uri 'none'; form-action 'none';">
 <meta name="referrer" content="no-referrer">
 <title>早睡对赌 · KT & KY</title><style>*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}:root{--ink:#26221c;--ink2:#7a7266;--paper:#ffffff;--bg:#ffffff;--red:#a8434f;--navy:#3f5b7d;--line:#e6dfd2;--soft:#f6f6f8}body{background:var(--bg);color:var(--ink);font-family:-apple-system,'PingFang SC','Helvetica Neue',sans-serif;min-height:100vh;padding-bottom:70px}.serif{font-family:'Noto Serif SC','Songti SC','SimSun',serif}header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}.hin{max-width:620px;margin:0 auto;padding:13px 18px 0;display:flex;align-items:baseline;justify-content:space-between}.hin h1{font-size:18px;letter-spacing:5px;font-weight:800}.hin h1 i{font-style:normal;color:var(--red)}.hin small{display:block;font-size:10px;letter-spacing:2px;color:var(--ink2);margin-top:3px;font-weight:400}#dayBadge{font-size:11px;letter-spacing:1px;color:var(--ink2);border:1px solid var(--line);background:#fff;padding:5px 10px;border-radius:99px;white-space:nowrap}.tabs{max-width:620px;margin:12px auto 0;display:flex;position:relative;background:rgba(252,253,255,.60);border-radius:999px;padding:5px;-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 1px 1px rgba(255,255,255,.65);user-select:none;-webkit-user-select:none;touch-action:none;overscroll-behavior:contain}#tabThumb{position:absolute;top:-5px;bottom:-5px;border-radius:999px;z-index:0;pointer-events:none;background:linear-gradient(168deg,rgba(255,255,255,.99),rgba(255,255,255,.84) 60%,rgba(255,255,255,.92));box-shadow:inset 0 1.5px 1px rgba(255,255,255,.95),inset 0 -1.5px 2px rgba(148,158,180,.30),inset 2px 0 3px rgba(255,145,185,.16),inset -2px 0 3px rgba(120,170,255,.18),0 0 0 .5px rgba(165,178,200,.22),0 3px 10px rgba(20,30,55,.16),0 10px 26px rgba(20,30,55,.18);transition:left .48s cubic-bezier(.22,1.1,.28,1.08),width .48s cubic-bezier(.22,1.1,.28,1.08);will-change:left,width,transform}
 @media (max-width:480px){.tabs a{font-size:14px;padding:13px 2px;letter-spacing:2px}}
@@ -260,7 +260,7 @@
 <div id="toast"></div><script type="module">import*as CB from"/cb.esm.js";window.cloudbase=CB.default||CB.cloudbase||CB;</script>
 <script>
 const CFG = { START: '2026-10-08', RATE: 0.15, EXEMPT: 3 };
-const APP_VER = 'v1.3 · 10-07 21:57';
+const APP_VER = 'v1.4 · 10-07 22:05';
 document.getElementById('verBadge').textContent = APP_VER;
 document.getElementById('gVer').textContent = '版本 ' + APP_VER;
 window.onerror = function(msg){ const g = document.getElementById('gErr'); if(g) g.textContent = '脚本提示: ' + msg; };
@@ -304,7 +304,7 @@ const head = `<div class="card" style="padding:9px 14px; display:flex; gap:10px;
 const rows = keys.map(k => {
 const e = d[k];
 let her = '<span style="font-size:11px;color:var(--ink2);">—</span>';
-if(e.her){ const c = CHIP[e.her];
+if(e.her && CHIP[e.her]){ const c = CHIP[e.her];
 her = `<span style="display:inline-flex; align-items:center; gap:6px;"><span style="background:${c[1]};color:${c[2]};padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;">${c[0]}</span>${e.img ? `<img src="${e.img}" onclick="viewImg('${k}')" style="width:30px; height:40px; object-fit:cover; border-radius:4px; border:1px solid var(--line); cursor:pointer;">` : ''}</span>`;
 }
 return `<div class="card" style="padding:11px 14px; display:flex; align-items:center; gap:10px;">
@@ -554,7 +554,7 @@ const s2 = $('wsumA');
 if(ws.length){
 let extra = ws.length > 1 ? `　累计 ${ws[ws.length-1].kg - ws[0].kg >= 0 ? '+' : ''}${(ws[ws.length-1].kg - ws[0].kg).toFixed(1)}kg` : '';
 s2.textContent = `共 ${ws.length} 次称重 · 最新 ${fmtD(ws[0].d)} ${ws[0].kg.toFixed(1)}kg${extra}`;
-} else s2.textContent = '基线还没录——对赌起始 48h 内，晨起空腹称两次取平均，记一条';
+} else s2.textContent = '基线还没录——48h 内晨起空腹称一次，记一条';
 }
 const NAME = { A:'甲方 · 杨坤途 签名', B:'乙方 · 黄可妍 签名' };
 let cur = null, padDrawn = false;
@@ -651,7 +651,7 @@ bb.innerHTML = '<span style="font-size:11px; letter-spacing:2px; color:#2e7d4f; 
 bb.dataset.locked = '1';
 const sig = JSON.parse(localStorage.getItem(SIGKEY) || '{}');
 if(sig.A && sig.B){
-if(!sig.dt){ sig.dt = new Date().toLocaleDateString('zh-CN'); localStorage.setItem(SIGKEY, JSON.stringify(sig)); }
+if(!sig.dt){ const n = new Date(); sig.dt = n.getFullYear() + '年' + (n.getMonth()+1) + '月' + n.getDate() + '日'; localStorage.setItem(SIGKEY, JSON.stringify(sig)); }
 $('dtext').textContent = sig.dt;
 $('done').style.display = '';
 }
@@ -799,6 +799,7 @@ keys.forEach(k => {
 if(dFilter !== 'all' && dFilter !== w) return;
 const e = d[k][w];
 if(!e) return;
+if(e.voice && e.voice.local) vLocalMap[k + '|' + w] = e.voice.local;
 const accent = w === 'A' ? 'var(--navy)' : 'var(--red)';
 rows.push(`<div class="card" style="padding:12px 14px; margin-bottom:8px; cursor:pointer;" onclick="dTgl(this)">
 <div style="display:flex; align-items:center; gap:10px;">
@@ -812,13 +813,12 @@ ${e.text ? `<div style="font-size:11px; color:var(--ink2); margin-top:3px; overf
 <div class="dtxt" style="display:none; margin-top:8px; padding-top:8px; border-top:1px dashed var(--line);">
 <div style="font-size:11px; color:var(--ink2); margin-bottom:5px;">${k.replace(/-/g,'.')}${e.ts ? ' · 存档于 ' + fmtTs(e.ts) : ''}</div>
 <div style="font-size:13px; line-height:1.7; white-space:pre-wrap;">${esc(e.text || '（这天没写正文）')}</div>
-${e.voice ? `<div style="margin-bottom:7px;">${e.voice.fid ? `<button onclick="vPlayFid('${e.voice.fid}')" style="width:100%; padding:11px 0; border-radius:11px; border:1.5px solid var(--navy); background:#fff; color:var(--navy); font-size:13px; font-weight:700; letter-spacing:2px; cursor:pointer; font-family:inherit;">▶ 播放语音</button>` : e.voice.local ? `<button onclick="vPlayData('${e.voice.local}')" style="width:100%; padding:11px 0; border-radius:11px; border:1.5px solid var(--navy); background:#fff; color:var(--navy); font-size:13px; font-weight:700; letter-spacing:2px; cursor:pointer; font-family:inherit;">▶ 播放语音</button>` : ''}</div>` : ''}
+${e.voice ? `<div style="margin-bottom:7px;">${e.voice.fid ? `<button onclick="vPlayFid('${e.voice.fid}')" style="width:100%; padding:11px 0; border-radius:11px; border:1.5px solid var(--navy); background:#fff; color:var(--navy); font-size:13px; font-weight:700; letter-spacing:2px; cursor:pointer; font-family:inherit;">▶ 播放语音</button>` : e.voice.local ? `<button onclick="vPlayKey('${k}|${w}')" style="width:100%; padding:11px 0; border-radius:11px; border:1.5px solid var(--navy); background:#fff; color:var(--navy); font-size:13px; font-weight:700; letter-spacing:2px; cursor:pointer; font-family:inherit;">▶ 播放语音</button>` : ''}</div>` : ''}
 </div>
 </div>`);
 });
 });
 box.innerHTML = rows.length ? rows.join('') : '<div class="card" style="padding:28px; text-align:center; color:var(--ink2); font-size:13px;">还没有日记<br><span style="font-size:11px;">两个人都可以写</span></div>';
-vFill();
 }
 const tabsBar = document.querySelector('.tabs'), tabThumb = $('tabThumb');
 const TABKEYS = ['sign','log','w','d'];
@@ -969,6 +969,7 @@ function vRedo(){
   vPaint('');
 }
 let vAC = null;
+const vLocalMap = {};
 function vCtx(){
   if(!vAC) vAC = new (window.AudioContext || window.webkitAudioContext)();
   if(vAC.state === 'suspended') vAC.resume();
@@ -997,6 +998,11 @@ function vPlayFid(fid){
     fetch(u).then(x => x.arrayBuffer()).then(vPlayAB).catch(() => vPaint('✗ 播放失败 · 稍后再试'));
   }).catch(() => vPaint('取语音失败'));
 }
+function vPlayKey(key){
+  const u = vLocalMap[key];
+  if(!u){ vPaint('这条语音只存在录它的手机上'); return; }
+  fetch(u).then(x => x.arrayBuffer()).then(vPlayAB).catch(() => vPaint('✗ 播放失败'));
+}
 function vPlayData(u){
   fetch(u).then(x => x.arrayBuffer()).then(vPlayAB).catch(() => vPaint('✗ 播放失败'));
 }
@@ -1017,23 +1023,10 @@ async function vUpload(){
   }
   return null;
 }
-let vUrlCache = {};
-async function vFill(){
-  document.querySelectorAll('audio[data-fid]').forEach(async a => {
-    const fid = a.dataset.fid;
-    if(vUrlCache[fid]){ a.src = vUrlCache[fid]; return; }
-    if(!cbApp) { if(a.dataset.local){ a.src = a.dataset.local; } return; }
-    try {
-      const r = await cbApp.getTempFileURL({ fileList: [fid] });
-      const u = r.fileList && r.fileList[0] && r.fileList[0].tempFileURL;
-      if(u){ vUrlCache[fid] = u; a.src = u; }
-    } catch(e){}
-  });
-}
-
 /* ===== 云同步（CloudBase · 实时） ===== */
 const CB_ENV = 'ktky-d7gemqn1r771eb77f';
 let cbApp = null, cbDb = null, cbOn = false;
+const cbFirst = { days: true, diary: true, signs: true };
 const cbLast = {};
 const cbSnap = { days: {}, diary: {}, signs: {} };
 const CB_BIG = 380000;
@@ -1074,6 +1067,7 @@ window.cbSignUp = function(){
   ['A','B'].forEach(k => { if(sig[k]) cbUp('signs', k, Object.assign({ who: k }, sig[k])).catch(() => {}); });
 };
 function cbApply(col, id, doc){
+  try{
   if(col === 'days'){
     const d = rdD(); const e = Object.assign({}, doc); delete e._id; delete e._t;
     d[id] = e; localStorage.setItem(DK, JSON.stringify(d));
@@ -1090,10 +1084,13 @@ function cbApply(col, id, doc){
     localStorage.setItem(SIGKEY, JSON.stringify(sig));
     try { applySign(id, sig[id].img); if(sig.dt) $('dtext').textContent = sig.dt; } catch(e){}
   }
+  } catch(e){}
 }
 function cbRemove(col, id){
+  try{
   if(col === 'days'){ const d = rdD(); delete d[id]; localStorage.setItem(DK, JSON.stringify(d)); renderDays(); refreshStat(); }
   else if(col === 'diary'){ const m = id.split('|'); const d = rdDiary(); if(d[m[0]]){ delete d[m[0]][m[1]]; if(!Object.keys(d[m[0]]).length) delete d[m[0]]; localStorage.setItem(DKD, JSON.stringify(d)); renderDiaryList(); } }
+  } catch(e){}
 }
 async function cbInit(){
   try {
@@ -1106,7 +1103,7 @@ async function cbInit(){
     ['days','diary','signs'].forEach(col => {
       cbDb.collection(col).where({ _id: cmd.neq('') }).watch({
         onChange(snap){
-          if(!cbOn){ cbOn = true; cbFirstSnap(col, snap); }
+          if(cbFirst[col]){ cbFirst[col] = false; cbOn = true; cbFirstSnap(col, snap); }
           else cbWatchChange(col, snap);
         },
         onError(){ cbOn = false; }
