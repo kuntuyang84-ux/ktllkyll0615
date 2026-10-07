@@ -12,7 +12,7 @@
 <header>
 <div class="hin">
 <h1 class="serif">早睡<span style="color:var(--red);">对赌</span></h1>
-<div class="hright"><span class="badge" id="verBadge">v1.0</span><span class="badge" id="dayBadge">—</span></div>
+<div class="hright"><span class="badge" id="cbStat">云：连接中</span><span class="badge" id="verBadge">v1.0</span><span class="badge" id="dayBadge">—</span></div>
 </div>
 <nav class="tabs"><div id="tabThumb"></div>
 <a id="tabSign" class="on" onclick="showTab('sign')">📜 协 议</a>
@@ -260,7 +260,7 @@
 <div id="toast"></div><script type="module">import*as CB from"/cb.esm.js";window.cloudbase=CB.default||CB.cloudbase||CB;</script>
 <script>
 const CFG = { START: '2026-10-08', RATE: 0.15, EXEMPT: 3 };
-const APP_VER = 'v1.4 · 10-07 22:05';
+const APP_VER = 'v1.5 · 10-07 22:20';
 document.getElementById('verBadge').textContent = APP_VER;
 document.getElementById('gVer').textContent = '版本 ' + APP_VER;
 window.onerror = function(msg){ const g = document.getElementById('gErr'); if(g) g.textContent = '脚本提示: ' + msg; };
@@ -1092,12 +1092,16 @@ function cbRemove(col, id){
   else if(col === 'diary'){ const m = id.split('|'); const d = rdDiary(); if(d[m[0]]){ delete d[m[0]][m[1]]; if(!Object.keys(d[m[0]]).length) delete d[m[0]]; localStorage.setItem(DKD, JSON.stringify(d)); renderDiaryList(); } }
   } catch(e){}
 }
+function cbStat(t){ const e = document.getElementById('cbStat'); if(e) e.textContent = t; }
 async function cbInit(){
   try {
-    if(!window.cloudbase) return;
+    if(!window.cloudbase) { cbStat('云：SDK未加载'); return; }
     cbApp = window.cloudbase.init({ env: CB_ENV });
     const auth = cbApp.auth({ persistence: 'local' });
-    await auth.signInAnonymously();
+    if(typeof auth.signInAnonymously === 'function') await auth.signInAnonymously();
+    else if(auth.anonymousAuthProvider) await auth.anonymousAuthProvider().signIn();
+    else throw new Error('SDK无匿名接口');
+    cbStat('云：已连·同步中');
     cbDb = cbApp.database();
     const cmd = cbDb.command;
     ['days','diary','signs'].forEach(col => {
@@ -1106,10 +1110,10 @@ async function cbInit(){
           if(cbFirst[col]){ cbFirst[col] = false; cbOn = true; cbFirstSnap(col, snap); }
           else cbWatchChange(col, snap);
         },
-        onError(){ cbOn = false; }
+        onError(e){ cbOn = false; cbStat('云：实时断(' + String(e && e.message || '').slice(0, 30) + ')'); }
       });
     });
-  } catch(e){ cbOn = false; }
+  } catch(e){ cbOn = false; cbStat('云：本地模式(' + String(e.message || e).slice(0, 40) + ')'); }
 }
 function cbFirstSnap(col, snap){
   const docs = snap.docs || [];
@@ -1146,7 +1150,7 @@ function cbWatchChange(col, snap){
   });
 }
 let cbTries = 0;
-function cbBoot(){ if(window.cloudbase){ cbInit(); return; } if(++cbTries > 100) return; setTimeout(cbBoot, 300); }
+function cbBoot(){ if(window.cloudbase){ cbInit(); return; } if(++cbTries > 100){ cbStat('云：SDK未加载(旧缓存)'); return; } setTimeout(cbBoot, 300); }
 setTimeout(cbBoot, 300);
 
 </script></body>
