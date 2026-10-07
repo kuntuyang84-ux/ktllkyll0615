@@ -12,7 +12,7 @@
 <header>
 <div class="hin">
 <h1 class="serif">早睡<span style="color:var(--red);">对赌</span></h1>
-<div class="hright"><span class="badge" id="cbStat">云：连接中</span><span class="badge" id="verBadge">v1.0</span><span class="badge" id="dayBadge">—</span></div>
+<div class="hright"><span class="badge" id="cbStat" style="white-space:normal; max-width:60vw; text-align:left; line-height:1.5;">云：连接中</span><span class="badge" id="verBadge">v1.0</span><span class="badge" id="dayBadge">—</span></div>
 </div>
 <nav class="tabs"><div id="tabThumb"></div>
 <a id="tabSign" class="on" onclick="showTab('sign')">📜 协 议</a>
@@ -260,7 +260,7 @@
 <div id="toast"></div><script type="module">import*as CB from"/cb.esm.js";window.cloudbase=CB.default||CB.cloudbase||CB;</script>
 <script>
 const CFG = { START: '2026-10-08', RATE: 0.15, EXEMPT: 3 };
-const APP_VER = 'v1.7 · 10-07 22:42';
+const APP_VER = 'v1.8 · 10-07 22:40';
 document.getElementById('verBadge').textContent = APP_VER;
 document.getElementById('gVer').textContent = '版本 ' + APP_VER;
 window.onerror = function(msg){ const g = document.getElementById('gErr'); if(g) g.textContent = '脚本提示: ' + msg; };
@@ -1116,7 +1116,7 @@ async function cbInit(){
         onError(e){ cbOn = false; const m = e && (e.message || e.msg || e.errorMessage); cbStat('云：实时断(' + String(m || '').slice(0, 30) + ')'); }
       });
     });
-  } catch(e){ cbOn = false; const m = e && (e.message || e.msg || e.errorMessage); cbStat('云：本地模式(' + String(m || JSON.stringify(e)).slice(0, 50) + ')'); }
+  } catch(e){ cbOn = false; const m = e && (e.error_description || e.message || e.msg || e.errorMessage); cbStat('云：本地模式(' + String(m || JSON.stringify(e)).slice(0, 110) + ')'); }
 }
 function cbFirstSnap(col, snap){
   const docs = snap.docs || [];
