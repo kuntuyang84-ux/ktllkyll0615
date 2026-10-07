@@ -260,7 +260,7 @@
 <div id="toast"></div><script type="module">import*as CB from"/cb.esm.js";window.cloudbase=CB.default||CB.cloudbase||CB;</script>
 <script>
 const CFG = { START: '2026-10-08', RATE: 0.15, EXEMPT: 3 };
-const APP_VER = 'v1.5 · 10-07 22:20';
+const APP_VER = 'v1.6 · 10-07 22:32';
 document.getElementById('verBadge').textContent = APP_VER;
 document.getElementById('gVer').textContent = '版本 ' + APP_VER;
 window.onerror = function(msg){ const g = document.getElementById('gErr'); if(g) g.textContent = '脚本提示: ' + msg; };
@@ -1101,15 +1101,18 @@ async function cbInit(){
     if(typeof auth.signInAnonymously === 'function') await auth.signInAnonymously();
     else if(auth.anonymousAuthProvider) await auth.anonymousAuthProvider().signIn();
     else throw new Error('SDK无匿名接口');
-    cbStat('云：已连·同步中');
+    cbStat('云：已连·拉取中');
     cbDb = cbApp.database();
     const cmd = cbDb.command;
+    for (const col of ['days','diary','signs']) {
+      const r = await cbDb.collection(col).limit(1000).get();
+      cbFirstSnap(col, { docs: r.data || [] });
+    }
+    cbOn = true;
+    cbStat('云：已连·实时同步中');
     ['days','diary','signs'].forEach(col => {
       cbDb.collection(col).where({ _id: cmd.neq('') }).watch({
-        onChange(snap){
-          if(cbFirst[col]){ cbFirst[col] = false; cbOn = true; cbFirstSnap(col, snap); }
-          else cbWatchChange(col, snap);
-        },
+        onChange(snap){ cbWatchChange(col, snap); },
         onError(e){ cbOn = false; cbStat('云：实时断(' + String(e && e.message || '').slice(0, 30) + ')'); }
       });
     });
