@@ -248,7 +248,8 @@
 <div id="gErr" style="font-size:11px; color:#e08a94; height:16px; letter-spacing:1px;"></div>
 <div id="gPad" style="display:grid; grid-template-columns:repeat(3,1fr); gap:13px; margin-top:16px; width:min(316px,84vw); touch-action:manipulation;"></div>
 </div>
-<div id="toast"></div><script>
+<div id="toast"></div><script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/1.7.1/cloudbase.full.js"></script>
+<script>
 const CFG = { START: '2026-10-08', RATE: 0.15, EXEMPT: 3 };
 const DK = 'kl_days_v1', SIGKEY = 'kl_signimg_v1';
 const $ = id => document.getElementById(id);
@@ -256,7 +257,7 @@ function today(){ const n = new Date(); return n.getFullYear() + '-' + String(n.
 function fmtD(v){ const d = new Date(v + 'T00:00:00'); return (d.getMonth()+1) + '月' + d.getDate() + '日'; }
 function fmtTs(ts){ const d = new Date(ts); const p = n => (n<10?'0':'')+n; return (d.getMonth()+1)+'.'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes()); }
 function rdD(){ try { return JSON.parse(localStorage.getItem(DK)) || {}; } catch(e){ return {}; } }
-function wrD(d){ localStorage.setItem(DK, JSON.stringify(d)); }
+function wrD(d){ localStorage.setItem(DK, JSON.stringify(d)); if(window.cbDaysDiff) cbDaysDiff(d); }
 function esc(v){ return String(v).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
 let toastTimer;
 function toast(m){ const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2200); }
@@ -613,6 +614,7 @@ const url = padCv.toDataURL('image/png');
 const sig = JSON.parse(localStorage.getItem(SIGKEY) || '{}');
 sig[cur] = { img: url, t: Date.now() };
 localStorage.setItem(SIGKEY, JSON.stringify(sig));
+if(window.cbSignUp) cbSignUp();
 closeModal(); applySign(cur, url);
 }
 function applySign(side, url){
@@ -728,6 +730,7 @@ const e = d[mCurDate] || {};
 e[mWho] = { mood: mPicks, feeling: $('mfeel').value.trim(), text: $('mtext').value.trim(), ts: Date.now() };
 d[mCurDate] = e;
 localStorage.setItem(DKD, JSON.stringify(d));
+if(window.cbDiaryUp) cbDiaryUp(mCurDate, mWho, e[mWho]);
 $('mAsk').style.display = 'none';
 mLoadDay(); renderDiaryList();
 toast(WHO[mWho] + ' 的日记已存档');
@@ -738,6 +741,7 @@ if(!confirm('删除 ' + fmtD(dt) + ' 的甲方日记？删了不可恢复')) ret
 const d = rdDiary();
 if(d[dt]){ delete d[dt].A; if(!Object.keys(d[dt]).length) delete d[dt]; }
 localStorage.setItem(DKD, JSON.stringify(d));
+if(window.cbDiaryDel) cbDiaryDel(dt);
 mLoadDay(); renderDiaryList(); toast('已删除');
 }
 function diaryCount(){
@@ -868,5 +872,124 @@ mLoadDay(); wLoadDay();
 openDay(); renderDays(); refreshStat();
 moveThumb(true);
 })();
+
+/* ===== 云同步（CloudBase · 实时） ===== */
+const CB_ENV = 'ktky-d7gemqn1r771eb77f';
+let cbDb = null, cbOn = false;
+const cbLast = {};
+const cbSnap = { days: {}, diary: {}, signs: {} };
+const CB_BIG = 380000;
+function cbTrim(o){
+  const x = {};
+  Object.keys(o || {}).forEach(k => { if(typeof o[k] === 'string' && o[k].length > CB_BIG) return; x[k] = o[k]; });
+  return x;
+}
+function cbLocalTs(e){ return Math.max((e && (e.ts || e.wts)) || 0, 0); }
+function cbMark(id){ cbLast[id] = Date.now(); }
+async function cbUp(col, id, data){
+  const t = Date.now();
+  const payload = Object.assign({}, cbTrim(data), { _id: id, _t: t });
+  await cbDb.collection(col).doc(id).set(payload);
+  cbSnap[col][id] = payload; cbMark(id);
+}
+async function cbDel(col, id){ cbMark(id); try { await cbDb.collection(col).doc(id).remove(); } catch(e){} delete cbSnap[col][id]; }
+function cbDaysDiff(d){
+  if(!cbOn) return;
+  Object.keys(d).forEach(k => {
+    const e = d[k];
+    if(!e){ if(cbSnap.days[k]) cbDel('days', k); return; }
+    const snap = cbSnap.days[k];
+    if(snap && snap._t >= cbLocalTs(e)) return;
+    cbUp('days', k, Object.assign({ date: k }, e)).catch(() => {});
+  });
+  Object.keys(cbSnap.days).forEach(k => { if(!d[k]) cbDel('days', k); });
+}
+window.cbDaysDiff = cbDaysDiff;
+window.cbDiaryUp = function(dt, who, e){
+  if(!cbOn || !e) return;
+  cbUp('diary', dt + '|' + who, Object.assign({ date: dt, who: who }, e)).catch(() => {});
+};
+window.cbDiaryDel = function(dt){ if(cbOn) cbDel('diary', dt + '|A'); };
+window.cbSignUp = function(){
+  if(!cbOn) return;
+  const sig = JSON.parse(localStorage.getItem(SIGKEY) || '{}');
+  ['A','B'].forEach(k => { if(sig[k]) cbUp('signs', k, Object.assign({ who: k }, sig[k])).catch(() => {}); });
+};
+function cbApply(col, id, doc){
+  if(col === 'days'){
+    const d = rdD(); const e = Object.assign({}, doc); delete e._id; delete e._t;
+    d[id] = e; localStorage.setItem(DK, JSON.stringify(d));
+    $('arcN').textContent = Object.keys(d).length; const a2 = $('arcN2'); if(a2) a2.textContent = Object.keys(d).length;
+    renderDays(); refreshStat();
+  } else if(col === 'diary'){
+    const m = id.split('|'), dt = m[0], who = m[1];
+    const d = rdDiary(); d[dt] = d[dt] || {}; d[dt][who] = Object.assign({}, doc); delete d[dt][who]._id; delete d[dt][who]._t;
+    localStorage.setItem(DKD, JSON.stringify(d));
+    $('marcN').textContent = diaryCount(); renderDiaryList();
+  } else if(col === 'signs'){
+    const sig = JSON.parse(localStorage.getItem(SIGKEY) || '{}');
+    sig[id] = Object.assign({}, doc); delete sig[id]._id; delete sig[id]._t;
+    localStorage.setItem(SIGKEY, JSON.stringify(sig));
+    try { applySign(id, sig[id].img); if(sig.dt) $('dtext').textContent = sig.dt; } catch(e){}
+  }
+}
+function cbRemove(col, id){
+  if(col === 'days'){ const d = rdD(); delete d[id]; localStorage.setItem(DK, JSON.stringify(d)); renderDays(); refreshStat(); }
+  else if(col === 'diary'){ const m = id.split('|'); const d = rdDiary(); if(d[m[0]]){ delete d[m[0]][m[1]]; if(!Object.keys(d[m[0]]).length) delete d[m[0]]; localStorage.setItem(DKD, JSON.stringify(d)); renderDiaryList(); } }
+}
+async function cbInit(){
+  try {
+    if(!window.cloudbase) return;
+    const app = cloudbase.init({ env: CB_ENV });
+    const auth = app.auth({ persistence: 'local' });
+    await auth.anonymousAuthProvider().signIn();
+    cbDb = app.database();
+    ['days','diary','signs'].forEach(col => {
+      cbDb.collection(col).watch({
+        onChange(snap){
+          if(!cbOn){ cbOn = true; cbFirstSnap(col, snap); }
+          else cbWatchChange(col, snap);
+        },
+        onError(){ cbOn = false; }
+      });
+    });
+  } catch(e){ cbOn = false; }
+}
+function cbFirstSnap(col, snap){
+  const docs = snap.docs || [];
+  const seen = {};
+  docs.forEach(doc => {
+    seen[doc._id] = 1; cbSnap[col][doc._id] = doc;
+    if(col === 'days'){ const d = rdD(); if(!d[doc._id] || doc._t > cbLocalTs(d[doc._id])) cbApply(col, doc._id, doc); }
+    else if(col === 'diary'){ const k = doc._id.split('|'); const d = rdDiary(); if(!d[k[0]] || !d[k[0]][k[1]] || doc._t > cbLocalTs(d[k[0]][k[1]])) cbApply(col, doc._id, doc); }
+    else { const sig = JSON.parse(localStorage.getItem(SIGKEY) || '{}'); if(!sig[doc._id]) cbApply(col, doc._id, doc); }
+  });
+  if(col === 'days'){ Object.keys(rdD()).forEach(k => { if(!seen[k]){ cbMark('days:' + k); cbUp('days', k, Object.assign({ date: k }, rdD()[k])).catch(() => {}); } }); }
+  if(col === 'diary'){ const d = rdDiary(); Object.keys(d).forEach(dt => Object.keys(d[dt]).forEach(who => { const id = dt + '|' + who; if(!seen[id]){ cbMark('diary:' + id); cbUp('diary', id, Object.assign({ date: dt, who: who }, d[dt][who])).catch(() => {}); } })); }
+  if(col === 'signs'){ const sig = JSON.parse(localStorage.getItem(SIGKEY) || '{}'); Object.keys(sig).forEach(k => { if(sig[k] && sig[k].img && !seen[k]){ cbMark('signs:' + k); cbUp('signs', k, Object.assign({ who: k }, sig[k])).catch(() => {}); } }); }
+}
+function cbWatchChange(col, snap){
+  const docs = snap.docs || [];
+  const seen = {};
+  docs.forEach(doc => {
+    seen[doc._id] = 1;
+    const prev = cbSnap[col][doc._id];
+    cbSnap[col][doc._id] = doc;
+    if(cbLast[col + ':' + doc._id] && doc._t <= cbLast[col + ':' + doc._id]) return;
+    if(prev && prev._t === doc._t) return;
+    if(col === 'days'){
+      const d = rdD();
+      if(!d[doc._id] || doc._t > cbLocalTs(d[doc._id])) cbApply(col, doc._id, doc);
+    } else if(col === 'diary'){
+      const k = doc._id.split('|'); const d = rdDiary();
+      if(!d[k[0]] || !d[k[0]][k[1]] || doc._t > cbLocalTs(d[k[0]][k[1]])) cbApply(col, doc._id, doc);
+    } else cbApply(col, doc._id, doc);
+  });
+  Object.keys(cbSnap[col]).forEach(id => {
+    if(!seen[id] && (!cbLast[col + ':' + id] || Date.now() - cbLast[col + ':' + id] > 5000)){ cbRemove(col, id); delete cbSnap[col][id]; }
+  });
+}
+setTimeout(cbInit, 600);
+
 </script></body>
 </html>
