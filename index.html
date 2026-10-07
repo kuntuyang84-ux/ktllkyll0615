@@ -260,7 +260,7 @@
 <div id="toast"></div><script type="module">import*as CB from"/cb.esm.js";window.cloudbase=CB.default||CB.cloudbase||CB;</script>
 <script>
 const CFG = { START: '2026-10-08', RATE: 0.15, EXEMPT: 3 };
-const APP_VER = 'v1.8 · 10-07 22:40';
+const APP_VER = 'v1.9 · 10-07 23:00';
 document.getElementById('verBadge').textContent = APP_VER;
 document.getElementById('gVer').textContent = '版本 ' + APP_VER;
 window.onerror = function(msg){ const g = document.getElementById('gErr'); if(g) g.textContent = '脚本提示: ' + msg; };
@@ -1097,7 +1097,7 @@ async function cbInit(){
   try {
     if(!window.cloudbase) { cbStat('云：SDK未加载'); return; }
     cbApp = window.cloudbase.init({ env: CB_ENV });
-    const auth = cbApp.auth({ persistence: 'local' });
+    const auth = cbApp.auth({ persistence: 'memory' });
     if(typeof auth.signInAnonymously === 'function') await auth.signInAnonymously();
     else if(auth.anonymousAuthProvider) await auth.anonymousAuthProvider().signIn();
     else throw new Error('SDK无匿名接口');
