@@ -195,6 +195,7 @@
 </div>
 <audio id="vPrev" controls preload="auto" playsinline style="display:none; width:100%; margin-bottom:6px;"></audio>
 <div id="vAct" style="display:none; gap:8px; margin-bottom:8px;">
+<button onclick="vListen()" style="flex:1; padding:12px 0; border-radius:11px; border:1.5px solid var(--navy); background:#fff; color:var(--navy); font-size:13px; font-weight:700; letter-spacing:2px; cursor:pointer; font-family:inherit;">▶ 试听</button>
 <button id="vUse" onclick="vUse()" style="flex:1; padding:12px 0; border-radius:11px; border:none; background:#2e7d4f; color:#fff; font-size:13px; font-weight:700; letter-spacing:2px; cursor:pointer; font-family:inherit;">✔ 就用这段</button>
 <button onclick="vRedo()" style="flex:1; padding:12px 0; border-radius:11px; border:1.5px solid var(--line); background:#fff; color:var(--ink2); font-size:13px; font-weight:600; letter-spacing:2px; cursor:pointer; font-family:inherit;">✖ 重录</button>
 </div>
@@ -971,6 +972,26 @@ function vRedo(){
   const btn = $('vBtn');
   btn.style.display = ''; btn.textContent = '🎤 录一段语音';
   vPaint('');
+}
+function vListen(){
+  if(!vBlob) return;
+  vPaint('播放中没声音？先看手机侧面的静音键');
+  const u = URL.createObjectURL(vBlob);
+  const a = new Audio(u);
+  a.play().then(() => {
+    vPaint('正在播放 · 没声音就拨一下静音键/调大音量');
+  }).catch(() => {
+    vPaint('系统播放器不给力，试试解码诊断…');
+    const tryDecode = ab => {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC){ vPaint('本机不支持解码 · 不影响上传，对方能听'); return; }
+      new AC().decodeAudioData(ab).then(() => {
+        vPaint('✔ 录音数据正常 · 本机播放受限不影响上传，对方能听');
+      }).catch(() => vPaint('✗ 录音数据异常 · 建议点 ✖ 重录'));
+    };
+    if(vBlob.arrayBuffer) vBlob.arrayBuffer().then(tryDecode).catch(() => vPaint('✗ 录音数据异常 · 建议重录'));
+    else { const rd = new FileReader(); rd.onload = () => tryDecode(rd.result); rd.onerror = () => vPaint('✗ 读取失败 · 建议重录'); rd.readAsArrayBuffer(vBlob); }
+  });
 }
 async function vUpload(){
   if(!vBlob) return null;
