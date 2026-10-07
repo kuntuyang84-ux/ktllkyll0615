@@ -260,7 +260,7 @@
 <div id="toast"></div><script type="module">import*as CB from"/cb.esm.js";window.cloudbase=CB.default||CB.cloudbase||CB;</script>
 <script>
 const CFG = { START: '2026-10-08', RATE: 0.15, EXEMPT: 3 };
-const APP_VER = 'v1.2 · 10-07 21:45';
+const APP_VER = 'v1.3 · 10-07 21:57';
 document.getElementById('verBadge').textContent = APP_VER;
 document.getElementById('gVer').textContent = '版本 ' + APP_VER;
 window.onerror = function(msg){ const g = document.getElementById('gErr'); if(g) g.textContent = '脚本提示: ' + msg; };
@@ -734,11 +734,8 @@ mPicks = e.mood || [];
 $('mfeel').value = e.feeling || '';
 $('mtext').value = e.text || '';
 paintEmo(); mStepUI(1);
-if(e.voice){
-  vPaint('这天已有语音 · 重录会覆盖');
-  if(e.voice.local){ $('vPrev').src = e.voice.local; $('vPrev').style.display = ''; }
-  else if(e.voice.fid && cbApp){ cbApp.getTempFileURL({ fileList: [e.voice.fid] }).then(r => { const u = r.fileList && r.fileList[0] && r.fileList[0].tempFileURL; if(u){ vUrlCache[e.voice.fid] = u; $('vPrev').src = u; $('vPrev').style.display = ''; } }).catch(() => {}); }
-} else vPaint('');
+if(e.voice) vPaint('这天已有语音 · 重录会覆盖');
+else vPaint('');
 $('mAsk').style.display = 'none';
 }
 function mSubmit(){
@@ -815,7 +812,7 @@ ${e.text ? `<div style="font-size:11px; color:var(--ink2); margin-top:3px; overf
 <div class="dtxt" style="display:none; margin-top:8px; padding-top:8px; border-top:1px dashed var(--line);">
 <div style="font-size:11px; color:var(--ink2); margin-bottom:5px;">${k.replace(/-/g,'.')}${e.ts ? ' · 存档于 ' + fmtTs(e.ts) : ''}</div>
 <div style="font-size:13px; line-height:1.7; white-space:pre-wrap;">${esc(e.text || '（这天没写正文）')}</div>
-${e.voice ? `<div style="margin-bottom:7px;">${e.voice.fid ? `<audio controls preload="none" data-fid="${e.voice.fid}" style="width:100%;"></audio>` : e.voice.local ? `<audio controls preload="metadata" src="${e.voice.local}" style="width:100%;"></audio>` : ''}</div>` : ''}
+${e.voice ? `<div style="margin-bottom:7px;">${e.voice.fid ? `<button onclick="vPlayFid('${e.voice.fid}')" style="width:100%; padding:11px 0; border-radius:11px; border:1.5px solid var(--navy); background:#fff; color:var(--navy); font-size:13px; font-weight:700; letter-spacing:2px; cursor:pointer; font-family:inherit;">▶ 播放语音</button>` : e.voice.local ? `<button onclick="vPlayData('${e.voice.local}')" style="width:100%; padding:11px 0; border-radius:11px; border:1.5px solid var(--navy); background:#fff; color:var(--navy); font-size:13px; font-weight:700; letter-spacing:2px; cursor:pointer; font-family:inherit;">▶ 播放语音</button>` : ''}</div>` : ''}
 </div>
 </div>`);
 });
@@ -937,9 +934,7 @@ async function vToggle(){
       clearInterval(vTimer);
       const type = (vRec.mimeType || mime || 'audio/webm').split(';')[0];
       vBlob = new Blob(vChunks, { type });
-      const p = $('vPrev');
-      p.onerror = () => vPaint('这段录音播放失败 · 点 ✖ 重录');
-      p.src = URL.createObjectURL(vBlob); p.style.display = ''; p.load();
+      $('vPrev').style.display = 'none';
       btn.style.display = 'none';
       $('vAct').style.display = 'flex';
       vPaint('已录好 ' + Math.round(vBlob.size / 1024) + 'KB · 先试听，行就点 ✔ 就用这段');
@@ -973,25 +968,37 @@ function vRedo(){
   btn.style.display = ''; btn.textContent = '🎤 录一段语音';
   vPaint('');
 }
+let vAC = null;
+function vCtx(){
+  if(!vAC) vAC = new (window.AudioContext || window.webkitAudioContext)();
+  if(vAC.state === 'suspended') vAC.resume();
+  return vAC;
+}
+function vPlayAB(ab){
+  const ac = vCtx();
+  ac.decodeAudioData(ab).then(buf => {
+    const src = ac.createBufferSource();
+    src.buffer = buf; src.connect(ac.destination); src.start(0);
+    vPaint('▶ 播放中 · 没声音就拨静音键');
+  }).catch(() => vPaint('✗ 录音数据异常 · 建议重录'));
+}
 function vListen(){
   if(!vBlob) return;
-  vPaint('播放中没声音？先看手机侧面的静音键');
-  const u = URL.createObjectURL(vBlob);
-  const a = new Audio(u);
-  a.play().then(() => {
-    vPaint('正在播放 · 没声音就拨一下静音键/调大音量');
-  }).catch(() => {
-    vPaint('系统播放器不给力，试试解码诊断…');
-    const tryDecode = ab => {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if(!AC){ vPaint('本机不支持解码 · 不影响上传，对方能听'); return; }
-      new AC().decodeAudioData(ab).then(() => {
-        vPaint('✔ 录音数据正常 · 本机播放受限不影响上传，对方能听');
-      }).catch(() => vPaint('✗ 录音数据异常 · 建议点 ✖ 重录'));
-    };
-    if(vBlob.arrayBuffer) vBlob.arrayBuffer().then(tryDecode).catch(() => vPaint('✗ 录音数据异常 · 建议重录'));
-    else { const rd = new FileReader(); rd.onload = () => tryDecode(rd.result); rd.onerror = () => vPaint('✗ 读取失败 · 建议重录'); rd.readAsArrayBuffer(vBlob); }
-  });
+  vPaint('解码中…');
+  if(vBlob.arrayBuffer) vBlob.arrayBuffer().then(vPlayAB).catch(() => vPaint('✗ 读取失败 · 建议重录'));
+  else { const rd = new FileReader(); rd.onload = () => vPlayAB(rd.result); rd.onerror = () => vPaint('✗ 读取失败'); rd.readAsArrayBuffer(vBlob); }
+}
+function vPlayFid(fid){
+  vPaint('取语音中…');
+  if(!cbApp){ vPaint('未连云 · 稍后再试'); return; }
+  cbApp.getTempFileURL({ fileList: [fid] }).then(r => {
+    const u = r.fileList && r.fileList[0] && r.fileList[0].tempFileURL;
+    if(!u){ vPaint('取语音失败'); return; }
+    fetch(u).then(x => x.arrayBuffer()).then(vPlayAB).catch(() => vPaint('✗ 播放失败 · 稍后再试'));
+  }).catch(() => vPaint('取语音失败'));
+}
+function vPlayData(u){
+  fetch(u).then(x => x.arrayBuffer()).then(vPlayAB).catch(() => vPaint('✗ 播放失败'));
 }
 async function vUpload(){
   if(!vBlob) return null;
