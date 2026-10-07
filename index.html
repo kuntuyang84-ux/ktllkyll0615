@@ -12,7 +12,7 @@
 <header>
 <div class="hin">
 <h1 class="serif">早睡<span style="color:var(--red);">对赌</span></h1>
-<div class="hright"><span class="badge" id="dayBadge">—</span></div>
+<div class="hright"><span class="badge" id="verBadge">v1.0</span><span class="badge" id="dayBadge">—</span></div>
 </div>
 <nav class="tabs"><div id="tabThumb"></div>
 <a id="tabSign" class="on" onclick="showTab('sign')">📜 协 议</a>
@@ -131,10 +131,7 @@
 <img id="wimgPrev" style="display:none; width:100%; border-radius:6px;">
 </div>
 <input type="file" id="wimgInput" accept="image/*" style="display:none;">
-<div class="frow" style="display:flex; gap:8px; margin-bottom:8px;">
-<button class="wpick" data-v="已称" style="flex:1; padding:10px 0; border-radius:9px; border:1.5px solid #ddd; background:#fff; font-size:13px; cursor:pointer; font-family:inherit;">⚖ 已称</button>
-<button class="wpick" data-v="未称" style="flex:1; padding:10px 0; border-radius:9px; border:1.5px solid #ddd; background:#fff; font-size:13px; cursor:pointer; font-family:inherit;">— 未称</button>
-</div>
+<div class="flabel" style="margin-bottom:6px;">今天的体重（kg）</div>
 <div class="flabel">今日体重 kg</div>
 <div class="frow"><input type="number" step="0.1" id="wkg" placeholder="如 88.5"></div>
 <div id="wAsk" class="confirm" style="display:none;">
@@ -254,6 +251,7 @@
 <div style="font-size:40px; margin-bottom:10px;">🔒</div>
 <div style="font-size:17px; font-weight:800; letter-spacing:3px; color:#fff;">早睡对赌</div>
 <div style="font-size:11px; letter-spacing:2px; color:rgba(255,255,255,.45); margin-top:6px;">仅限 KT & KY · 输入 6 位密码</div>
+<div id="gVer" style="font-size:9px; letter-spacing:1px; color:rgba(255,255,255,.3); margin-top:10px;">—</div>
 <div id="gDots" style="display:flex; gap:14px; margin:26px 0 6px;"></div>
 <div id="gErr" style="font-size:11px; color:#e08a94; height:16px; letter-spacing:1px;"></div>
 <div id="gPad" style="display:grid; grid-template-columns:repeat(3,1fr); gap:13px; margin-top:16px; width:min(316px,84vw); touch-action:manipulation;"></div>
@@ -261,6 +259,8 @@
 <div id="toast"></div><script type="module">import*as CB from"/cb.esm.js";window.cloudbase=CB.default||CB.cloudbase||CB;</script>
 <script>
 const CFG = { START: '2026-10-08', RATE: 0.15, EXEMPT: 3 };
+const APP_VER = 'v1.0 · 10-07 21:10';
+$('verBadge').textContent = APP_VER; $('gVer').textContent = '版本 ' + APP_VER;
 const DK = 'kl_days_v1', SIGKEY = 'kl_signimg_v1';
 const $ = id => document.getElementById(id);
 function today(){ const n = new Date(); return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0'); }
@@ -495,24 +495,16 @@ $('wdate').textContent = fmtD(wCurDate) + '（' + wCurDate.replace(/-/g,'.') + '
 const e = rdD()[wCurDate] || {};
 $('warcN').textContent = weightList().length;
 wCurImg = e.wimg || null;
-wPick = e.wst || (e.w != null ? '已称' : null);
 paintWImg();
-document.querySelectorAll('.wpick').forEach(x => {
-const on = x.dataset.v === wPick;
-x.style.background = on ? '#eaf0f7' : '#fff';
-x.style.borderColor = on ? 'var(--navy)' : '#ddd';
-x.style.fontWeight = on ? '700' : '400';
-});
 $('wkg').value = (e.w != null && e.w !== '') ? e.w : '';
 $('wAsk').style.display = 'none';
 $('wSave').style.display = '';
 }
 function wSubmit(){
 const dt = wCurDate, kg = $('wkg').value;
-if(!wPick){ alert('先选：已称 / 未称'); return; }
-if(wPick === '已称' && kg === ''){ alert('已称要填体重'); return; }
-if(kg !== '' && (+kg <= 30 || +kg >= 200)){ alert('体重数字看着不对（30-200 之间才合理）'); return; }
-$('wAskT').innerHTML = '<b>' + fmtD(dt) + '</b>　' + (wPick === '已称' ? '<b>⚖ 已称 ' + (+kg).toFixed(1) + 'kg</b>' : '<b>— 未称</b>') + (wCurImg ? '　📷 已存' : '');
+if(kg === ''){ alert('填上今天的体重'); return; }
+if(+kg <= 30 || +kg >= 200){ alert('体重数字看着不对（30-200 之间才合理）'); return; }
+$('wAskT').innerHTML = '<b>' + fmtD(dt) + '</b>　<b>⚖ 体重 ' + (+kg).toFixed(1) + 'kg</b>' + (wCurImg ? '　📷 已存' : '');
 $('wAsk').style.display = '';
 $('wSave').style.display = 'none';
 }
@@ -521,7 +513,7 @@ if(!ok){ $('wAsk').style.display = 'none'; $('wSave').style.display = ''; return
 const dt = wCurDate, kg = $('wkg').value;
 const d = rdD();
 const e = d[dt] || {};
-if(wPick === '已称'){ e.w = +kg; e.wst = '已称'; } else { e.wst = '未称'; delete e.w; }
+e.w = +kg; e.wst = '已称';
 e.wts = Date.now();
 if(wCurImg) e.wimg = wCurImg; else delete e.wimg;
 if(!Object.keys(e).length) delete d[dt]; else d[dt] = e;
@@ -932,7 +924,6 @@ async function vToggle(){
       const p = $('vPrev');
       p.onerror = () => vPaint('这段录音播放失败 · 点 ✖ 重录');
       p.src = URL.createObjectURL(vBlob); p.style.display = ''; p.load();
-      p.play().catch(() => {});
       btn.style.display = 'none';
       $('vAct').style.display = 'flex';
       vPaint('已录好 ' + Math.round(vBlob.size / 1024) + 'KB · 先试听，行就点 ✔ 就用这段');
