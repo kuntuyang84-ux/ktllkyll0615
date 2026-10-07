@@ -254,7 +254,7 @@
 <div id="gErr" style="font-size:11px; color:#e08a94; height:16px; letter-spacing:1px;"></div>
 <div id="gPad" style="display:grid; grid-template-columns:repeat(3,1fr); gap:13px; margin-top:16px; width:min(316px,84vw); touch-action:manipulation;"></div>
 </div>
-<div id="toast"></div><script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/1.7.1/cloudbase.full.js" async></script>
+<div id="toast"></div><script type="module">import*as CB from"/cb.esm.js";window.cloudbase=CB.default||CB.cloudbase||CB;</script>
 <script>
 const CFG = { START: '2026-10-08', RATE: 0.15, EXEMPT: 3 };
 const DK = 'kl_days_v1', SIGKEY = 'kl_signimg_v1';
@@ -1028,12 +1028,13 @@ function cbRemove(col, id){
 async function cbInit(){
   try {
     if(!window.cloudbase) return;
-    cbApp = cloudbase.init({ env: CB_ENV });
-    const auth = app.auth({ persistence: 'local' });
-    await auth.anonymousAuthProvider().signIn();
-    cbDb = app.database();
+    cbApp = window.cloudbase.init({ env: CB_ENV });
+    const auth = cbApp.auth({ persistence: 'local' });
+    await auth.signInAnonymously();
+    cbDb = cbApp.database();
+    const cmd = cbDb.command;
     ['days','diary','signs'].forEach(col => {
-      cbDb.collection(col).watch({
+      cbDb.collection(col).where({ _id: cmd.neq('') }).watch({
         onChange(snap){
           if(!cbOn){ cbOn = true; cbFirstSnap(col, snap); }
           else cbWatchChange(col, snap);
