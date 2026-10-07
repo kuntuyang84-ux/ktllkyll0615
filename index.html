@@ -196,7 +196,11 @@
 <div class="frow" style="margin:10px 0 4px;">
 <button id="vBtn" onclick="vToggle()" style="flex:1; padding:11px 0; border-radius:11px; border:1.5px solid var(--line); background:#fff; color:var(--ink); font-size:13px; font-weight:600; letter-spacing:2px; cursor:pointer; font-family:inherit;">🎤 录一段语音</button>
 </div>
-<audio id="vPrev" controls preload="none" style="display:none; width:100%; margin-bottom:4px;"></audio>
+<audio id="vPrev" controls preload="auto" playsinline style="display:none; width:100%; margin-bottom:6px;"></audio>
+<div id="vAct" style="display:none; gap:8px; margin-bottom:8px;">
+<button id="vUse" onclick="vUse()" style="flex:1; padding:12px 0; border-radius:11px; border:none; background:#2e7d4f; color:#fff; font-size:13px; font-weight:700; letter-spacing:2px; cursor:pointer; font-family:inherit;">✔ 就用这段</button>
+<button onclick="vRedo()" style="flex:1; padding:12px 0; border-radius:11px; border:1.5px solid var(--line); background:#fff; color:var(--ink2); font-size:13px; font-weight:600; letter-spacing:2px; cursor:pointer; font-family:inherit;">✖ 重录</button>
+</div>
 <div id="vTip" style="font-size:10px; color:var(--ink2); margin-bottom:8px; letter-spacing:1px;"></div>
 <div class="frow" style="margin:10px 0 12px;">
 <textarea id="mtext" rows="6" maxlength="500" placeholder="想写就写几句……" style="width:100%; font-family:inherit; font-size:14px; padding:14px; border:1.5px solid var(--line); border-radius:12px; resize:none; background:#fff;"></textarea>
@@ -722,6 +726,11 @@ mPicks = e.mood || [];
 $('mfeel').value = e.feeling || '';
 $('mtext').value = e.text || '';
 paintEmo(); mStepUI(1);
+if(e.voice){
+  vPaint('这天已有语音 · 重录会覆盖');
+  if(e.voice.local){ $('vPrev').src = e.voice.local; $('vPrev').style.display = ''; }
+  else if(e.voice.fid && cbApp){ cbApp.getTempFileURL({ fileList: [e.voice.fid] }).then(r => { const u = r.fileList && r.fileList[0] && r.fileList[0].tempFileURL; if(u){ vUrlCache[e.voice.fid] = u; $('vPrev').src = u; $('vPrev').style.display = ''; } }).catch(() => {}); }
+} else vPaint('');
 $('mAsk').style.display = 'none';
 }
 function mSubmit(){
@@ -733,8 +742,13 @@ async function mAsk(ok){
 if(!ok){ $('mAsk').style.display = 'none'; return; }
 const d = rdDiary();
 const e = d[mCurDate] || {};
+const vOld = e[mWho] && e[mWho].voice;
 e[mWho] = { mood: mPicks, feeling: $('mfeel').value.trim(), text: $('mtext').value.trim(), ts: Date.now() };
-if(vBlob){ const v = await vUpload(); if(v) e[mWho].voice = v; vBlob = null; $('vPrev').style.display = 'none'; $('vPrev').removeAttribute('src'); $('vBtn').textContent = '🎤 录一段语音'; vPaint(''); }
+if(vBlob && vConfirmed){ const v = await vUpload(); if(v) e[mWho].voice = v; vBlob = null; vConfirmed = false; }
+else if(vOld) e[mWho].voice = vOld;
+const p = $('vPrev');
+p.pause(); p.removeAttribute('src'); p.style.display = 'none';
+$('vBtn').textContent = '🎤 录一段语音'; vPaint('');
 d[mCurDate] = e;
 localStorage.setItem(DKD, JSON.stringify(d));
 if(window.cbDiaryUp) cbDiaryUp(mCurDate, mWho, e[mWho]);
@@ -894,13 +908,15 @@ moveThumb(true);
 
 
 /* ===== 语音日记（录音+云端存档） ===== */
-let vRec = null, vChunks = [], vBlob = null, vTimer = null;
+let vRec = null, vChunks = [], vBlob = null, vTimer = null, vConfirmed = false;
 function vPaint(txt){ $('vTip').textContent = txt || ''; }
 async function vToggle(){
   const btn = $('vBtn');
   if(vRec && vRec.state === 'recording'){
     vRec.stop(); return;
   }
+  vConfirmed = false;
+  $('vAct').style.display = 'none';
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     let mime = '';
@@ -914,9 +930,10 @@ async function vToggle(){
       const type = (vRec.mimeType || mime || 'audio/webm').split(';')[0];
       vBlob = new Blob(vChunks, { type });
       const p = $('vPrev');
-      p.src = URL.createObjectURL(vBlob); p.style.display = '';
-      btn.textContent = '🎤 重录';
-      vPaint('已录好 ' + Math.round(vBlob.size / 1024) + 'KB · 点试听，不想要就重录');
+      p.src = URL.createObjectURL(vBlob); p.style.display = ''; p.load();
+      btn.style.display = 'none';
+      $('vAct').style.display = 'flex';
+      vPaint('已录好 ' + Math.round(vBlob.size / 1024) + 'KB · 先试听，行就点 ✔ 就用这段');
       vRec = null;
     };
     vRec.start();
@@ -929,6 +946,23 @@ async function vToggle(){
       if(sec >= 180 && vRec && vRec.state === 'recording') vRec.stop();
     }, 1000);
   } catch(e){ vPaint('拿不到麦克风：' + (e.name === 'NotAllowedError' ? '需要允许麦克风权限' : e.message)); }
+}
+function vUse(){
+  if(!vBlob) return;
+  vConfirmed = true;
+  $('vAct').style.display = 'none';
+  const btn = $('vBtn');
+  btn.style.display = ''; btn.textContent = '🎤 已录好 · 点此重录';
+  vPaint('✔ 已附加这段语音 · 保存日记后自动上传云端');
+}
+function vRedo(){
+  vBlob = null; vConfirmed = false;
+  const p = $('vPrev');
+  p.pause(); p.removeAttribute('src'); p.style.display = 'none';
+  $('vAct').style.display = 'none';
+  const btn = $('vBtn');
+  btn.style.display = ''; btn.textContent = '🎤 录一段语音';
+  vPaint('');
 }
 async function vUpload(){
   if(!vBlob) return null;
