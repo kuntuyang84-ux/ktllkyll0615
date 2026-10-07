@@ -260,7 +260,7 @@
 <div id="toast"></div><script type="module">import*as CB from"/cb.esm.js";window.cloudbase=CB.default||CB.cloudbase||CB;</script>
 <script>
 const CFG = { START: '2026-10-08', RATE: 0.15, EXEMPT: 3 };
-const APP_VER = 'v1.9 · 10-07 23:00';
+const APP_VER = 'v2.0 · 10-07 23:10';
 document.getElementById('verBadge').textContent = APP_VER;
 document.getElementById('gVer').textContent = '版本 ' + APP_VER;
 window.onerror = function(msg){ const g = document.getElementById('gErr'); if(g) g.textContent = '脚本提示: ' + msg; };
@@ -1098,9 +1098,17 @@ async function cbInit(){
     if(!window.cloudbase) { cbStat('云：SDK未加载'); return; }
     cbApp = window.cloudbase.init({ env: CB_ENV });
     const auth = cbApp.auth({ persistence: 'memory' });
-    if(typeof auth.signInAnonymously === 'function') await auth.signInAnonymously();
-    else if(auth.anonymousAuthProvider) await auth.anonymousAuthProvider().signIn();
-    else throw new Error('SDK无匿名接口');
+    const T = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjgzMzZlOTlhLWY1NTktNDE2Yy04MzMwLTExNzFkNGIyZGRiMiJ9.eyJjdXN0b21Vc2VySWQiOiJrdF9reSIsImlhdCI6MTc5MTM4NTA4NiwiZXhwIjoxODIyOTIxMDg2fQ.HulwUpVmiiskb3HlQdJ8LzfXg-3hfFnUkwMgj5CG3a-3_4aim1aNasVvd7QV0DHLQPLqn63Z_vLag1gEp8724uyAjyz97budc-BYNYjvHsEX4yOceNmeiDrOnhqa8nXvqZDUH1ClgJdN1-8hej6y1HIrUDkRXhnxODvXaZ_jEE8';
+    try {
+      if(typeof auth.signInAnonymously === 'function') await auth.signInAnonymously();
+      else if(auth.anonymousAuthProvider) await auth.anonymousAuthProvider().signIn();
+      else throw new Error('无匿名接口');
+      cbStat('匿名登录 ✓');
+    } catch(eAnon) {
+      cbStat('匿名不通，切专用票据…');
+      await auth.signInWithCustomTicket(T);
+      cbStat('票据登录 ✓');
+    }
     cbStat('云：已连·拉取中');
     cbDb = cbApp.database();
     const cmd = cbDb.command;
