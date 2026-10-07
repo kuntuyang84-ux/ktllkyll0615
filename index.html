@@ -930,7 +930,9 @@ async function vToggle(){
       const type = (vRec.mimeType || mime || 'audio/webm').split(';')[0];
       vBlob = new Blob(vChunks, { type });
       const p = $('vPrev');
+      p.onerror = () => vPaint('这段录音播放失败 · 点 ✖ 重录');
       p.src = URL.createObjectURL(vBlob); p.style.display = ''; p.load();
+      p.play().catch(() => {});
       btn.style.display = 'none';
       $('vAct').style.display = 'flex';
       vPaint('已录好 ' + Math.round(vBlob.size / 1024) + 'KB · 先试听，行就点 ✔ 就用这段');
