@@ -44,7 +44,7 @@
 <div class="clause">
 <h3>第二条　甲方体重义务</h3>
 <ul>
-<li>基线：起始日 <b>48 小时内</b>晨起空腹用米家体脂秤称量两次取平均，经乙方确认生效；</li>
+<li>基线：起始日 <b>48 小时内</b>晨起空腹用米家体脂秤称量一次，经乙方确认生效；</li>
 <li><b>每日</b>晨起空腹称重并上传截图，作为日常记录；</li>
 <li><b>考核每月一次</b>：每月 1 日对账，乙方上月达标天数 × <b>0.15kg</b> = 甲方当月承诺减重量，于对照表公示验证；</li>
 <li>最终目标：双方共同约定 <b>70kg</b>。</li>
@@ -68,7 +68,7 @@
 <div class="sbtn" id="btnB"><button onclick="openPad('B')">签 名</button></div>
 </div>
 </div>
-<div class="sdate">签署日期：<b id="dtext">＿＿＿＿年＿＿月＿＿日</b></div>
+<div class="sdate">签署日期：<b id="dtext">2026年10月7日</b></div>
 <div class="done" id="done" style="display:none;">✔ 已共同签署 —— 请立即截图保存本页</div>
 </div>
 </div>
@@ -193,6 +193,11 @@
 </div>
 <div id="mstep3" style="display:none;">
 <div class="flabel">第三步 · 今天的日记（可写可不写）</div>
+<div class="frow" style="margin:10px 0 4px;">
+<button id="vBtn" onclick="vToggle()" style="flex:1; padding:11px 0; border-radius:11px; border:1.5px solid var(--line); background:#fff; color:var(--ink); font-size:13px; font-weight:600; letter-spacing:2px; cursor:pointer; font-family:inherit;">🎤 录一段语音</button>
+</div>
+<audio id="vPrev" controls preload="none" style="display:none; width:100%; margin-bottom:4px;"></audio>
+<div id="vTip" style="font-size:10px; color:var(--ink2); margin-bottom:8px; letter-spacing:1px;"></div>
 <div class="frow" style="margin:10px 0 12px;">
 <textarea id="mtext" rows="6" maxlength="500" placeholder="想写就写几句……" style="width:100%; font-family:inherit; font-size:14px; padding:14px; border:1.5px solid var(--line); border-radius:12px; resize:none; background:#fff;"></textarea>
 </div>
@@ -724,11 +729,12 @@ const feeling = $('mfeel').value.trim(), text = $('mtext').value.trim();
 $('mAskT').innerHTML = '<b>' + WHO[mWho] + ' · ' + fmtD(mCurDate) + '</b>　' + mPicks.join(' ') + (feeling ? '<br>「' + esc(feeling) + '」' : '') + (text ? '<br>日记 ' + text.length + ' 字' : '<br>（没写日记）');
 $('mAsk').style.display = '';
 }
-function mAsk(ok){
+async function mAsk(ok){
 if(!ok){ $('mAsk').style.display = 'none'; return; }
 const d = rdDiary();
 const e = d[mCurDate] || {};
 e[mWho] = { mood: mPicks, feeling: $('mfeel').value.trim(), text: $('mtext').value.trim(), ts: Date.now() };
+if(vBlob){ const v = await vUpload(); if(v) e[mWho].voice = v; vBlob = null; $('vPrev').style.display = 'none'; $('vPrev').removeAttribute('src'); $('vBtn').textContent = '🎤 录一段语音'; vPaint(''); }
 d[mCurDate] = e;
 localStorage.setItem(DKD, JSON.stringify(d));
 if(window.cbDiaryUp) cbDiaryUp(mCurDate, mWho, e[mWho]);
@@ -787,11 +793,13 @@ ${e.text ? `<div style="font-size:11px; color:var(--ink2); margin-top:3px; overf
 <div class="dtxt" style="display:none; margin-top:8px; padding-top:8px; border-top:1px dashed var(--line);">
 <div style="font-size:11px; color:var(--ink2); margin-bottom:5px;">${k.replace(/-/g,'.')}${e.ts ? ' · 存档于 ' + fmtTs(e.ts) : ''}</div>
 <div style="font-size:13px; line-height:1.7; white-space:pre-wrap;">${esc(e.text || '（这天没写正文）')}</div>
+${e.voice ? `<div style="margin-bottom:7px;">${e.voice.fid ? `<audio controls preload="none" data-fid="${e.voice.fid}" style="width:100%;"></audio>` : e.voice.local ? `<audio controls preload="metadata" src="${e.voice.local}" style="width:100%;"></audio>` : ''}</div>` : ''}
 </div>
 </div>`);
 });
 });
 box.innerHTML = rows.length ? rows.join('') : '<div class="card" style="padding:28px; text-align:center; color:var(--ink2); font-size:13px;">还没有日记<br><span style="font-size:11px;">两个人都可以写</span></div>';
+vFill();
 }
 const tabsBar = document.querySelector('.tabs'), tabThumb = $('tabThumb');
 const TABKEYS = ['sign','log','w','d'];
@@ -844,13 +852,23 @@ tabsBar.addEventListener('click', e => { if(tSuppress){ e.preventDefault(); e.st
 addEventListener('resize', moveThumb);
 /* 密码门 */
 const GATE_H = '959373c5b7d10d55', GATE_S = 'ktky·0615·';
+const GATE_H2 = 'a8d01a071db568c6b88f5032a2cd49dc4e1220de9b4e58564f1a1c5ba996e4d6', GATE_S2 = 'ktky·0615·2026';
+async function gDerive(pin){
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(GATE_S2), iterations: 150000, hash: 'SHA-256' }, key, 256);
+  return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 function gHash(str){ let h1=0x811c9dc5, h2=0x5bd1e995; for(let r=0;r<64;r++){ for(let i=0;i<str.length;i++){ const c=str.charCodeAt(i); h1=Math.imul(h1^c,16777619)>>>0; h2=Math.imul(h2+c^r,2654435761)>>>0; } h1=(h1^r)>>>0; } return ('0000000'+h1.toString(16)).slice(-8)+('0000000'+h2.toString(16)).slice(-8); }
 let gBuf = '';
 function gPaint(){ $('gDots').innerHTML = [0,1,2,3,4,5].map(i => '<div style="width:13px;height:13px;border-radius:99px;border:1.5px solid rgba(255,255,255,.5);background:' + (i < gBuf.length ? '#fff' : 'transparent') + '"></div>').join(''); }
 function gKey(k){ if(gBuf.length >= 6) return; gBuf += k; gPaint(); if(gBuf.length === 6) setTimeout(gTry, 120); }
 function gDel(){ gBuf = gBuf.slice(0,-1); gPaint(); }
-function gTry(){
-if(gHash(GATE_S + gBuf) === GATE_H){ sessionStorage.setItem('ktgate','1'); $('gate').style.display = 'none'; gBuf = ''; gPaint(); return; }
+async function gTry(){
+let ok;
+if(window.crypto && crypto.subtle){ try { ok = await gDerive(gBuf) === GATE_H2; } catch(e){ ok = gHash(GATE_S + gBuf) === GATE_H; } }
+else ok = gHash(GATE_S + gBuf) === GATE_H;
+if(ok){ sessionStorage.setItem('ktgate','1'); $('gate').style.display = 'none'; gBuf = ''; gPaint(); return; }
 $('gErr').textContent = '密码不对 · 再想想';
 gBuf = ''; gPaint();
 $('gPad').style.animation = 'gshake .4s';
@@ -874,9 +892,78 @@ openDay(); renderDays(); refreshStat();
 moveThumb(true);
 })();
 
+
+/* ===== 语音日记（录音+云端存档） ===== */
+let vRec = null, vChunks = [], vBlob = null, vTimer = null;
+function vPaint(txt){ $('vTip').textContent = txt || ''; }
+async function vToggle(){
+  const btn = $('vBtn');
+  if(vRec && vRec.state === 'recording'){
+    vRec.stop(); return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let mime = '';
+    for(const m of ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']){ if(window.MediaRecorder && MediaRecorder.isTypeSupported(m)){ mime = m; break; } }
+    vRec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    vChunks = []; vBlob = null;
+    vRec.ondataavailable = e => { if(e.data && e.data.size) vChunks.push(e.data); };
+    vRec.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      clearInterval(vTimer);
+      const type = (vRec.mimeType || mime || 'audio/webm').split(';')[0];
+      vBlob = new Blob(vChunks, { type });
+      const p = $('vPrev');
+      p.src = URL.createObjectURL(vBlob); p.style.display = '';
+      btn.textContent = '🎤 重录';
+      vPaint('已录好 ' + Math.round(vBlob.size / 1024) + 'KB · 点试听，不想要就重录');
+      vRec = null;
+    };
+    vRec.start();
+    btn.textContent = '⏹ 结束录音';
+    let sec = 0;
+    vPaint('录音中 0s · 上限 3 分钟');
+    vTimer = setInterval(() => {
+      sec++;
+      vPaint('录音中 ' + sec + 's · 上限 3 分钟');
+      if(sec >= 180 && vRec && vRec.state === 'recording') vRec.stop();
+    }, 1000);
+  } catch(e){ vPaint('拿不到麦克风：' + (e.name === 'NotAllowedError' ? '需要允许麦克风权限' : e.message)); }
+}
+async function vUpload(){
+  if(!vBlob) return null;
+  const ext = (vBlob.type || '').includes('mp4') ? 'm4a' : 'webm';
+  if(cbOn && window.cloudbase){
+    try {
+      const name = 'voice/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+      const file = new File([vBlob], name.split('/').pop(), { type: vBlob.type });
+      const r = await cbApp.uploadFile({ cloudPath: name, filePath: file });
+      return { fid: r.fileID, mime: vBlob.type, dur: 0 };
+    } catch(e){ vPaint('云端存语音失败，先本地存一份'); }
+  }
+  if(vBlob.size <= 200000){
+    const rd = new FileReader();
+    return await new Promise(res => { rd.onload = () => res({ local: rd.result }); rd.onerror = () => res(null); rd.readAsDataURL(vBlob); });
+  }
+  return null;
+}
+let vUrlCache = {};
+async function vFill(){
+  document.querySelectorAll('audio[data-fid]').forEach(async a => {
+    const fid = a.dataset.fid;
+    if(vUrlCache[fid]){ a.src = vUrlCache[fid]; return; }
+    if(!cbApp) { if(a.dataset.local){ a.src = a.dataset.local; } return; }
+    try {
+      const r = await cbApp.getTempFileURL({ fileList: [fid] });
+      const u = r.fileList && r.fileList[0] && r.fileList[0].tempFileURL;
+      if(u){ vUrlCache[fid] = u; a.src = u; }
+    } catch(e){}
+  });
+}
+
 /* ===== 云同步（CloudBase · 实时） ===== */
 const CB_ENV = 'ktky-d7gemqn1r771eb77f';
-let cbDb = null, cbOn = false;
+let cbApp = null, cbDb = null, cbOn = false;
 const cbLast = {};
 const cbSnap = { days: {}, diary: {}, signs: {} };
 const CB_BIG = 380000;
@@ -941,7 +1028,7 @@ function cbRemove(col, id){
 async function cbInit(){
   try {
     if(!window.cloudbase) return;
-    const app = cloudbase.init({ env: CB_ENV });
+    cbApp = cloudbase.init({ env: CB_ENV });
     const auth = app.auth({ persistence: 'local' });
     await auth.anonymousAuthProvider().signIn();
     cbDb = app.database();
